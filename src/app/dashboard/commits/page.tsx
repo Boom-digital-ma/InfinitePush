@@ -56,9 +56,10 @@ function CommitsContent() {
     const sha = isBuildParamsOpen.sha;
     const version = formData.get('version') as string;
     const channel = formData.get('channel') as string;
+    const is_mandatory = formData.get('is_mandatory') === 'true';
     
     setIsActionLoading(true);
-    const result = await triggerGitHubBuild(project.id, sha, version, channel);
+    const result = await triggerGitHubBuild(project.id, sha, version, channel, is_mandatory);
     if (result.success) {
       setIsBuildParamsOpen(null);
       alert('Build triggered! Check the History tab in a few minutes.');
@@ -140,6 +141,12 @@ function CommitsContent() {
                   <option value="staging">Staging</option>
                 </select>
               </div>
+              
+              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Mandatory Update</span>
+                <input name="is_mandatory" type="checkbox" value="true" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setIsBuildParamsOpen(null)} className="flex-grow py-3 text-xs font-bold text-slate-400">Cancel</button>
                 <button type="submit" disabled={isActionLoading} className="flex-grow bg-blue-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg shadow-blue-100 hover:bg-blue-700">
@@ -157,18 +164,21 @@ function CommitsContent() {
 export default function CommitsPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
-      <aside className="w-64 bg-white border-r border-slate-200 p-6 flex flex-col fixed h-full">
+      <aside className="w-64 bg-white border-r border-slate-200 p-6 flex flex-col fixed h-full shadow-sm">
         <div className="flex items-center gap-2 mb-10">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">IP</div>
-          <span className="font-bold text-lg tracking-tight tracking-tighter">InfinitePush</span>
+          <span className="font-bold text-lg tracking-tighter">InfinitePush</span>
         </div>
         <nav className="space-y-1">
-          <Link href="/dashboard" className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50">← Back to Projects</Link>
+          <Link href="/dashboard" className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 transition-all font-bold">← Dashboard</Link>
         </nav>
       </aside>
 
       <main className="flex-grow pl-64 p-10 max-w-7xl mx-auto w-full">
-        <Suspense fallback={<div className="p-20 text-center">Loading context...</div>}>
+        <Suspense fallback={<div className="p-20 text-center flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Repository Context</p>
+        </div>}>
           <CommitsContent />
         </Suspense>
       </main>

@@ -177,7 +177,7 @@ export async function getGitHubCommits(projectId: string) {
   }
 }
 
-export async function triggerGitHubBuild(projectId: string, commitSha: string, version: string, channel: string) {
+export async function triggerGitHubBuild(projectId: string, commitSha: string, version: string, channel: string, is_mandatory: boolean) {
   const supabase = await createClient();
 
   const { data: project, error: projectError } = await supabase
@@ -206,6 +206,7 @@ export async function triggerGitHubBuild(projectId: string, commitSha: string, v
             commit_sha: commitSha,
             version: version,
             channel: channel,
+            is_mandatory: is_mandatory,
           },
         }),
       }
