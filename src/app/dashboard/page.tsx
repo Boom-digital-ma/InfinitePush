@@ -1,284 +1,163 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { connectProject, getProjects, getDeployments, deployZip, rollbackToVersion, updateProjectGitHub } from '@/app/actions/projectActions';
-import { signOut } from '@/app/actions/authActions';
-import Link from 'next/link';
+import React, { useState, useEffect, Suspense } from 'react';
+import { getProjectAnalytics, getProjects, connectProject } from '@/app/actions/projectActions';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { Plus, BarChart3 } from 'lucide-react';
 
-interface Deployment {
-  id: string;
-  version: string;
-  build_number: number;
-  created_at: string;
-  status: string;
-  channel: string;
-  is_mandatory: boolean;
-  install_count?: number;
-}
+const COLORS = ['#3b82f6', '#10b981', '#94a3b8'];
 
-interface Project {
-  id: string;
-  name: string;
-  client_supabase_url: string;
-  subscription_status: string;
-  github_repo?: string;
-  github_token?: string;
-}
+function AnalyticsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const projectId = searchParams.get('projectId');
 
-export default function Dashboard() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  
+  const [project, setProject] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [isDeployOpen, setIsDeployOpen] = useState(false);
-  const [isGitModalOpen, setIsGitModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
-    if (selectedProject) {
-      fetchDeployments(selectedProject.id);
+    if (!projectId) {
+      setIsLoading(false);
+      return;
     }
-  }, [selectedProject]);
+    fetchData();
+  }, [projectId]);
 
-  async function fetchProjects() {
+  async function fetchData() {
     setIsLoading(true);
-    const result = await getProjects();
-    if (result.projects) {
-      setProjects(result.projects);
-      // Persist selection or pick first
-      const storedId = localStorage.getItem('last_project_id');
-      const found = result.projects.find((p: Project) => p.id === storedId);
-      setSelectedProject(found || result.projects[0] || null);
-    }
+    const projectsResult = await getProjects();
+    const found = projectsResult.projects?.find((p: any) => p.id === projectId);
+    setProject(found || null);
+
+    const stats = await getProjectAnalytics(projectId as string);
+    setAnalytics(stats);
     setIsLoading(false);
   }
-
-  async function fetchDeployments(projectId: string) {
-    const result = await getDeployments(projectId);
-    if (result.deployments) setDeployments(result.deployments);
-    else setDeployments([]);
-  }
-
-  const handleSelectProject = (p: Project) => {
-    setSelectedProject(p);
-    localStorage.setItem('last_project_id', p.id);
-  };
 
   async function handleConnectProject(formData: FormData) {
     setIsActionLoading(true);
     const result = await connectProject(formData);
     if (result.success) {
-      await fetchProjects();
-      setIsNewProjectOpen(false);
-    } else setError(result.error || 'Failed to connect');
-    setIsActionLoading(false);
-  }
-
-  async function handleDeploy(formData: FormData) {
-    if (!selectedProject) return;
-    setIsActionLoading(true);
-    const result = await deployZip(selectedProject.id, formData);
-    if (result.success) {
-      await fetchDeployments(selectedProject.id);
-      setIsDeployOpen(false);
-      setSelectedFile(null);
-    } else setError(result.error || 'Deployment failed');
-    setIsActionLoading(false);
-  }
-
-  async function handleUpdateGitHub(formData: FormData) {
-    if (!selectedProject) return;
-    setIsActionLoading(true);
-    const result = await updateProjectGitHub(selectedProject.id, formData);
-    if (result.success) {
-      await fetchProjects();
-      setIsGitModalOpen(false);
-    } else setError(result.error || 'Update failed');
+      window.location.reload();
+    } else alert(result.error || 'Failed to connect');
     setIsActionLoading(false);
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center p-20">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!projectId) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+          <BarChart3 size={32} />
+        </div>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">Metrics & Insights</h2>
+        <p className="text-slate-500 mb-8 max-w-xs text-sm leading-relaxed">Select a project from the sidebar to view detailed usage statistics and platform distribution.</p>
+        <button onClick={() => setIsNewProjectOpen(true)} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center gap-2 hover:bg-blue-700 transition-colors">
+          <Plus size={16} /> New Project
+        </button>
+
+        {isNewProjectOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-slate-900">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
+              <h2 className="text-lg font-bold mb-6">Connect New Project</h2>
+              <form action={handleConnectProject} className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Project Name</label>
+                  <input name="name" type="text" required placeholder="My Application" className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium outline-none focus:border-blue-500 bg-slate-50/50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Supabase URL</label>
+                  <input name="client_supabase_url" type="url" required placeholder="https://xxx.supabase.co" className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-mono outline-none focus:border-blue-500 bg-slate-50/50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Service Role Key</label>
+                  <input name="client_supabase_key" type="password" required placeholder="eyJ..." className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-mono outline-none focus:border-blue-500 bg-slate-50/50" />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setIsNewProjectOpen(false)} className="flex-grow py-2.5 text-sm font-semibold text-slate-500">Cancel</button>
+                  <button type="submit" disabled={isActionLoading} className="flex-grow bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold shadow-lg">Establish Link</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 p-6 flex flex-col fixed h-full">
-        <div className="flex items-center gap-2 mb-10">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">IP</div>
-          <span className="font-bold text-lg tracking-tight">InfinitePush</span>
-        </div>
-        
-        <nav className="space-y-1 flex-grow overflow-y-auto">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-3">Projects</p>
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => handleSelectProject(p)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedProject?.id === p.id ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {p.name}
-            </button>
-          ))}
-          <button onClick={() => setIsNewProjectOpen(true)} className="w-full text-left px-3 py-2 text-blue-500 text-sm font-bold mt-4">+ New Project</button>
-        </nav>
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{project?.name} Overview</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">Platform-wide usage and installation metrics.</p>
+      </header>
 
-        <button onClick={() => signOut()} className="mt-auto pt-6 border-t border-slate-100 text-slate-400 hover:text-slate-600 text-xs font-bold">
-          Sign Out
-        </button>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-grow pl-64 p-10 max-w-7xl mx-auto w-full">
-        {!selectedProject ? (
-          <div className="h-full flex flex-col items-center justify-center text-center">
-            <h2 className="text-xl font-bold mb-2">No Project Selected</h2>
-            <button onClick={() => setIsNewProjectOpen(true)} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold mt-4">Initialize BYOS</button>
-          </div>
-        ) : (
-          <>
-            <header className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">{selectedProject.name}</h1>
-                <p className="text-slate-400 text-xs font-medium mt-1">{selectedProject.client_supabase_url}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setIsDeployOpen(true)} className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50">Upload ZIP</button>
-                <button onClick={() => setIsGitModalOpen(true)} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm">Settings</button>
-              </div>
-            </header>
-
-            {/* Sub-navigation */}
-            <div className="flex border-b border-slate-200 mb-8">
-              <Link href="/dashboard" className="px-6 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-blue-600 text-blue-600">Deployment History</Link>
-              <Link href={`/dashboard/commits?projectId=${selectedProject.id}`} className="px-6 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all">GitHub Commits</Link>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[10px]">Version</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[10px]">Channel</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[10px] text-center">Installs</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 uppercase text-[10px] text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {deployments.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No deployments found.</td></tr>
-                  ) : (
-                    deployments.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900">{d.version}</span>
-                            {d.is_mandatory && <span className="bg-red-50 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-bold">Mandatory</span>}
-                          </div>
-                          <div className="text-[10px] text-slate-400 mt-1">{new Date(d.created_at).toLocaleString()}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-[10px] font-bold uppercase text-slate-500 bg-slate-100 px-2 py-1 rounded">{d.channel}</span>
-                        </td>
-                        <td className="px-6 py-4 text-center font-bold text-slate-600">{d.install_count || 0}</td>
-                        <td className="px-6 py-4 text-right">
-                          {d.status !== 'active' ? (
-                            <button onClick={() => rollbackToVersion(selectedProject.id, d.id)} className="text-blue-600 font-bold text-xs hover:underline">Rollback</button>
-                          ) : (
-                            <span className="text-emerald-600 font-bold text-xs">Live</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Modals (New Project, GitHub, Manual Upload) */}
-      {isNewProjectOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-bold mb-6">Connect BYOS</h2>
-            <form action={handleConnectProject} className="space-y-5">
-              <input name="name" type="text" required placeholder="App Name" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-blue-500" />
-              <input name="client_supabase_url" type="url" required placeholder="Supabase URL" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono outline-none focus:border-blue-500" />
-              <input name="client_supabase_key" type="password" required placeholder="Service Role Key" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono outline-none focus:border-blue-500" />
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsNewProjectOpen(false)} className="flex-grow py-3 text-xs font-bold text-slate-400 transition-all text-left">Cancel</button>
-                <button type="submit" disabled={isActionLoading} className="flex-grow bg-blue-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg shadow-blue-100">Establish Connection</button>
-              </div>
-            </form>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">Daily Installs</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={analytics?.dailyStats}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+                  cursor={{ fill: '#f8fafc' }}
+                />
+                <Bar dataKey="installs" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
 
-      {isGitModalOpen && selectedProject && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-slate-900">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-bold mb-6">Git Build Settings</h2>
-            <form action={handleUpdateGitHub} className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Repository (Owner/Repo)</label>
-                <input name="github_repo" type="text" required defaultValue={selectedProject.github_repo} placeholder="Boom-digital-ma/Repo" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold outline-none" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">GitHub Token (PAT)</label>
-                <input name="github_token" type="password" required defaultValue={selectedProject.github_token} placeholder="ghp_..." className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono outline-none" />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsGitModalOpen(false)} className="flex-grow py-3 text-xs font-bold text-slate-400">Cancel</button>
-                <button type="submit" disabled={isActionLoading} className="flex-grow bg-slate-900 text-white py-3 rounded-xl text-xs font-bold">Save Git Config</button>
-              </div>
-            </form>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">OS Distribution</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={analytics?.platformStats}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={85}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {analytics?.platformStats.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 'medium' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
-
-      {isDeployOpen && selectedProject && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-slate-900">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-bold mb-6 tracking-tight">Direct Upload</h2>
-            <form action={handleDeploy} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <input name="version" type="text" required placeholder="Version (1.0.4)" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold outline-none" />
-                <select name="channel" className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold bg-white">
-                  <option value="production">Production</option>
-                  <option value="beta">Beta</option>
-                  <option value="staging">Staging</option>
-                </select>
-              </div>
-              <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-500 cursor-pointer bg-slate-50 transition-all">
-                <input name="file" type="file" required accept=".zip" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                <div className="text-xs font-bold text-slate-600">{selectedFile ? selectedFile.name : 'Click to select update.zip'}</div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsDeployOpen(false)} className="flex-grow py-3 text-xs font-bold text-slate-400">Cancel</button>
-                <button type="submit" disabled={isActionLoading || !selectedFile} className="flex-grow bg-blue-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg">Start Upload</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-20"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>}>
+      <AnalyticsContent />
+    </Suspense>
   );
 }
