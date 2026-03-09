@@ -198,6 +198,7 @@ export async function triggerGitHubBuild(projectId: string, commitSha: string, v
         headers: {
           Authorization: `Bearer ${project.github_token}`,
           Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'InfinitePush-Dashboard',
         },
         body: JSON.stringify({
           event_type: 'infinitepush_deploy',
@@ -211,7 +212,11 @@ export async function triggerGitHubBuild(projectId: string, commitSha: string, v
     );
 
     if (!response.ok) {
-      throw new Error('Failed to trigger GitHub build');
+      const errorData = await response.json().catch(() => ({ message: 'No detail provided' }));
+      console.error('GitHub API Error:', response.status, errorData);
+      return { 
+        error: `GitHub API Error (${response.status}): ${errorData.message || response.statusText}` 
+      };
     }
 
     return { success: true };
