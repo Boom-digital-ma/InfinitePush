@@ -142,6 +142,112 @@ export async function rollbackToVersion(projectId: string, deploymentId: string)
   }
 }
 
+export async function getGitHubCommits(projectId: string) {
+  const supabase = await createClient();
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('github_repo, github_token, github_branch')
+    .eq('id', projectId)
+    .single();
+
+  if (projectError || !project?.github_repo || !project?.github_token) {
+    return { error: 'GitHub not connected' };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${project.github_repo}/commits?sha=${project.github_branch}&per_page=10`,
+      {
+        headers: {
+          Authorization: `Bearer ${project.github_token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch commits from GitHub');
+    }
+
+    const commits = await response.json();
+    return { commits };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function triggerGitHubBuild(projectId: string, commitSha: string, version: string, channel: string) {
+  const supabase = await createClient();
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('github_repo, github_token')
+    .eq('id', projectId)
+    .single();
+
+  if (projectError || !project?.github_repo || !project?.github_token) {
+    return { error: 'GitHub not connected' };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${project.github_repo}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${project.github_token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+        body: JSON.stringify({
+          event_type: 'infinitepush_deploy',
+          client_payload: {
+            commit_sha: commitSha,
+            version: version,
+            channel: channel,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to trigger GitHub build');
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function updateProjectGitHub(projectId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const github_repo = formData.get('github_repo') as string;
+  const github_token = formData.get('github_token') as string;
+  const github_branch = (formData.get('github_branch') as string) || 'main';
+
+  if (!github_repo || !github_token) {
+    return { error: 'Repository and Token are required' };
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .update({
+      github_repo,
+      github_token,
+      github_branch,
+    })
+    .eq('id', projectId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
 export async function deployZip(projectId: string, formData: FormData) {
   const supabase = await createClient();
 
