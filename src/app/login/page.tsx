@@ -15,10 +15,10 @@ export default function LoginPage() {
     try {
       const result = isLogin ? await login(formData) : await signup(formData);
       
-      if (result?.error) {
+      if (result && 'error' in result && result.error) {
         setMessage({ type: 'error', text: result.error });
-      } else if (result?.success) {
-        setMessage({ type: 'success', text: result.success });
+      } else if (result && 'success' in result && result.success) {
+        setMessage({ type: 'success', text: result.success as string });
       }
     } catch (e: any) {
       setMessage({ type: 'error', text: 'Something went wrong' });
