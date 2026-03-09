@@ -94,6 +94,42 @@ export async function getDeployments(projectId: string) {
   }
 }
 
+export async function getProjectAnalytics(projectId: string) {
+  const supabase = await createClient();
+
+  // 1. Platform distribution
+  const { data: platformData } = await supabase
+    .from('analytics_installs')
+    .select('device_platform')
+    .eq('project_id', projectId);
+
+  const platformStats = [
+    { name: 'iOS', value: platformData?.filter(p => p.device_platform === 'ios').length || 0 },
+    { name: 'Android', value: platformData?.filter(p => p.device_platform === 'android').length || 0 },
+    { name: 'Other', value: platformData?.filter(p => !['ios', 'android'].includes(p.device_platform || '')).length || 0 },
+  ];
+
+  // 2. Daily installs (Last 7 days)
+  const { data: dailyData } = await supabase
+    .from('analytics_installs')
+    .select('created_at')
+    .eq('project_id', projectId)
+    .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+  const dailyMap: Record<string, number> = {};
+  dailyData?.forEach(d => {
+    const date = new Date(d.created_at).toLocaleDateString();
+    dailyMap[date] = (dailyMap[date] || 0) + 1;
+  });
+
+  const dailyStats = Object.keys(dailyMap).map(date => ({
+    date,
+    installs: dailyMap[date]
+  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return { platformStats, dailyStats };
+}
+
 export async function rollbackToVersion(projectId: string, deploymentId: string) {
   const supabase = await createClient();
 
