@@ -24,13 +24,38 @@ export async function connectProject(formData: FormData) {
     throw new Error('Not authenticated');
   }
 
+  // 1. Check User Quota from Profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_status, max_projects')
+    .eq('id', user.id)
+    .single();
+
+  // 2. Count existing projects
+  const { count, error: countError } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  if (countError) return { error: countError.message };
+
+  const currentProjectCount = count || 0;
+  const limit = profile?.max_projects || 1;
+
+  // 3. Enforce Limit
+  if (currentProjectCount >= limit) {
+    return { 
+      error: `Limit reached! Your current plan allows only ${limit} project(s). Please upgrade to PRO for more.` 
+    };
+  }
+
   const { error } = await supabase.from('projects').insert({
     user_id: user.id,
     name,
     client_supabase_url,
     client_supabase_key,
-    subscription_status: 'trial',
-    plan_type: 'solo',
+    subscription_status: profile?.subscription_status || 'free',
+    plan_type: profile?.subscription_status === 'active' ? 'pro' : 'solo',
   });
 
   if (error) {
