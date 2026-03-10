@@ -182,11 +182,13 @@ export async function rollbackToVersion(projectId: string, deploymentId: string)
 
     if (!targetDeployment) return { error: 'Deployment not found' };
 
+    // 1. Force ALL deployments for this channel to be inactive first
     await clientSupabase
       .from('infinite_push_deployments')
       .update({ status: 'inactive' })
       .eq('channel', targetDeployment.channel);
 
+    // 2. Set only the target as active
     const { error: updateError } = await clientSupabase
       .from('infinite_push_deployments')
       .update({ status: 'active' })
