@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { getProjects, getDeployments, deployZip, rollbackToVersion, updateProjectGitHub, connectProject } from '@/app/actions/projectActions';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Upload, Settings, ShieldAlert, CheckCircle2, RotateCcw } from 'lucide-react';
+import { PageLoader, LoadingDots } from '@/components/ui/Loading';
 
 interface Deployment {
   id: string;
@@ -22,23 +23,27 @@ function HistoryContent() {
 
   const [project, setProject] = useState<any>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isDeployOpen, setIsDeployOpen] = useState(false);
   const [isGitModalOpen, setIsGitModalOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<'all' | 'production' | 'beta' | 'staging'>('all');
 
   useEffect(() => {
     if (projectId) fetchData();
   }, [projectId]);
 
   async function fetchData() {
+    setIsLoading(true);
     const result = await getProjects();
     const found = result.projects?.find((p: any) => p.id === projectId);
     setProject(found || null);
 
     const deploys = await getDeployments(projectId as string);
     setDeployments(deploys.deployments || []);
+    setIsLoading(false);
   }
 
   async function handleConnectProject(formData: FormData) {
@@ -82,6 +87,10 @@ function HistoryContent() {
     setIsActionLoading(false);
   }
 
+  const filteredDeployments = selectedChannel === 'all' 
+    ? deployments 
+    : deployments.filter(d => d.channel === selectedChannel);
+
   if (!projectId) return (
     <div className="h-[60vh] flex flex-col items-center justify-center text-center">
       <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
@@ -120,7 +129,9 @@ function HistoryContent() {
   );
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 font-sans w-full">
+    <div className="space-y-8 animate-in fade-in duration-500 font-sans w-full">
+      {isActionLoading && <PageLoader />}
+      
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{project?.name} History</h1>
@@ -136,6 +147,23 @@ function HistoryContent() {
         </div>
       </header>
 
+      {/* Channel Tabs */}
+      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        {(['all', 'production', 'beta', 'staging'] as const).map((channel) => (
+          <button
+            key={channel}
+            onClick={() => setSelectedChannel(channel)}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+              selectedChannel === channel 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {channel}
+          </button>
+        ))}
+      </div>
+
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -146,11 +174,17 @@ function HistoryContent() {
               <th className="px-6 py-4 font-semibold text-slate-500 uppercase text-[10px] tracking-wider text-right">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {deployments.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-16 text-center text-slate-400 italic">No releases found for this project.</td></tr>
+          <tbody className="divide-y divide-slate-100 min-h-[200px]">
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-16 text-center">
+                  <LoadingDots />
+                </td>
+              </tr>
+            ) : filteredDeployments.length === 0 ? (
+              <tr><td colSpan={4} className="px-6 py-16 text-center text-slate-400 italic">No releases found for this channel.</td></tr>
             ) : (
-              deployments.map((d) => (
+              filteredDeployments.map((d) => (
                 <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
@@ -167,6 +201,8 @@ function HistoryContent() {
                     <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border ${
                       d.channel === 'production' 
                         ? 'bg-purple-50 text-purple-600 border-purple-100' 
+                        : d.channel === 'beta'
+                        ? 'bg-amber-50 text-amber-600 border-amber-100'
                         : 'bg-blue-50 text-blue-600 border-blue-100'
                     }`}>
                       {d.channel}
@@ -258,10 +294,7 @@ function HistoryContent() {
 
 export default function HistoryPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center flex flex-col items-center gap-4 text-slate-300">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300"></div>
-      <p className="text-sm font-semibold uppercase tracking-widest">Syncing History</p>
-    </div>}>
+    <Suspense fallback={<PageLoader />}>
       <HistoryContent />
     </Suspense>
   );

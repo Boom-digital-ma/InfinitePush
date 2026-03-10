@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { getGitHubCommits, triggerGitHubBuild, getProjects } from '@/app/actions/projectActions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { GitBranch, GitCommit, Settings, AlertCircle } from 'lucide-react';
+import { PageLoader, LoadingDots } from '@/components/ui/Loading';
 
 interface GitHubCommit {
   sha: string;
@@ -26,6 +27,7 @@ function CommitsContent() {
 
   useEffect(() => {
     if (projectId) fetchData();
+    else setIsLoading(false);
   }, [projectId]);
 
   async function fetchData() {
@@ -52,7 +54,6 @@ function CommitsContent() {
     const result = await triggerGitHubBuild(project.id, sha, version, channel, is_mandatory);
     if (result.success) {
       setIsBuildParamsOpen(null);
-      alert('Build triggered successfully!');
       router.push(`/dashboard/history?projectId=${project.id}`);
     } else {
       alert('Error: ' + result.error);
@@ -64,18 +65,25 @@ function CommitsContent() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500 font-sans">
+      {isActionLoading && <PageLoader />}
+      
       <header className="flex justify-between items-center text-slate-900">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Source Pipeline</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Repository: <span className="font-mono text-blue-600 font-bold">{project?.github_repo || 'Not Connected'}</span></p>
+          <p className="text-slate-500 text-sm font-medium mt-1">Repository: <span className="font-mono text-blue-600 font-bold">{project?.github_repo || 'Loading...'}</span></p>
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-white px-3 py-1.5 rounded-full border border-slate-200">
           <GitBranch size={14} /> main branch
         </div>
       </header>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        {!project?.github_repo ? (
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm min-h-[400px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[400px] text-slate-400 gap-4">
+            <LoadingDots />
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Fetching Commits</p>
+          </div>
+        ) : !project?.github_repo ? (
           <div className="p-20 text-center flex flex-col items-center gap-4">
             <Settings size={40} className="text-slate-200" />
             <p className="text-slate-400 text-sm font-medium max-w-xs">No GitHub repository connected to this project yet.</p>
@@ -84,7 +92,7 @@ function CommitsContent() {
         ) : (
           <div className="divide-y divide-slate-100">
             {commits.length === 0 ? (
-              <div className="p-20 text-center text-slate-400 text-sm font-medium italic">Searching for commits...</div>
+              <div className="p-20 text-center text-slate-400 text-sm font-medium italic">No commits found in this branch.</div>
             ) : (
               commits.map((c) => (
                 <div key={c.sha} className="px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-all group">
@@ -114,7 +122,7 @@ function CommitsContent() {
 
       {isBuildParamsOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-slate-900 font-sans">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in duration-200">
             <h2 className="text-lg font-bold mb-2">Build Configuration</h2>
             <p className="text-slate-500 text-xs mb-8 leading-relaxed font-medium">Configure build for commit <span className="font-mono font-bold text-slate-900">{isBuildParamsOpen.sha.substring(0, 7)}</span></p>
             
@@ -143,7 +151,7 @@ function CommitsContent() {
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setIsBuildParamsOpen(null)} className="flex-grow py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
                 <button type="submit" disabled={isActionLoading} className="flex-grow bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold shadow-lg hover:bg-blue-700 transition-colors">
-                  {isActionLoading ? 'Requesting Build...' : 'Confirm & Build'}
+                  Confirm & Build
                 </button>
               </div>
             </form>
@@ -156,10 +164,7 @@ function CommitsContent() {
 
 export default function CommitsPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center flex flex-col items-center gap-4 text-slate-300">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300"></div>
-      <p className="text-sm font-semibold uppercase tracking-widest">Loading Repository</p>
-    </div>}>
+    <Suspense fallback={<PageLoader />}>
       <CommitsContent />
     </Suspense>
   );

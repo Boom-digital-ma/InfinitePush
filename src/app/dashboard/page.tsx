@@ -8,6 +8,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { Plus, BarChart3 } from 'lucide-react';
+import { PageLoader, LoadingDots } from '@/components/ui/Loading';
 
 const COLORS = ['#3b82f6', '#10b981', '#94a3b8'];
 
@@ -23,11 +24,8 @@ function AnalyticsContent() {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
 
   useEffect(() => {
-    if (!projectId) {
-      setIsLoading(false);
-      return;
-    }
-    fetchData();
+    if (projectId) fetchData();
+    else setIsLoading(false);
   }, [projectId]);
 
   async function fetchData() {
@@ -50,14 +48,6 @@ function AnalyticsContent() {
     setIsActionLoading(false);
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-20">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   if (!projectId) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-center">
@@ -72,12 +62,12 @@ function AnalyticsContent() {
 
         {isNewProjectOpen && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-slate-900">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 transform transition-all animate-in fade-in duration-200">
               <h2 className="text-lg font-bold mb-6">Connect New Project</h2>
               <form action={handleConnectProject} className="space-y-4 text-left">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Project Name</label>
-                  <input name="name" type="text" required placeholder="My Application" className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium outline-none focus:border-blue-500 bg-slate-50/50" />
+                  <input name="name" type="text" required placeholder="My Application" className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium outline-none focus:border-blue-500 bg-slate-50/50 font-sans" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Supabase URL</label>
@@ -101,54 +91,65 @@ function AnalyticsContent() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
+      {isActionLoading && <PageLoader />}
+      
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{project?.name} Overview</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{project?.name || 'Loading...'} Overview</h1>
         <p className="text-slate-500 text-sm font-medium mt-1">Platform-wide usage and installation metrics.</p>
       </header>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">Daily Installs</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics?.dailyStats}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
-                  cursor={{ fill: '#f8fafc' }}
-                />
-                <Bar dataKey="installs" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
+      <div className="grid md:grid-cols-2 gap-6 min-h-[400px]">
+        {isLoading ? (
+          <div className="col-span-2 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200 shadow-sm p-20">
+            <LoadingDots />
+            <p className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aggregating Metrics</p>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-w-0">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">Daily Installs</h3>
+              <div className="h-64 w-full min-h-[256px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <BarChart data={analytics?.dailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'medium', fill: '#64748b'}} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+                      cursor={{ fill: '#f8fafc' }}
+                    />
+                    <Bar dataKey="installs" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">OS Distribution</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={analytics?.platformStats}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={85}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {analytics?.platformStats.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 'medium' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-w-0">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-8">OS Distribution</h3>
+              <div className="h-64 w-full min-h-[256px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <PieChart>
+                    <Pie
+                      data={analytics?.platformStats}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {analytics?.platformStats.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 'medium' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -156,7 +157,7 @@ function AnalyticsContent() {
 
 export default function AnalyticsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center p-20"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>}>
+    <Suspense fallback={<PageLoader />}>
       <AnalyticsContent />
     </Suspense>
   );

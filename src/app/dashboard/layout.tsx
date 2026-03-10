@@ -17,6 +17,7 @@ import {
   User
 } from 'lucide-react';
 import { ProjectWizard } from '@/components/dashboard/ProjectWizard';
+import { PageLoader, LoadingDots } from '@/components/ui/Loading';
 
 interface Project {
   id: string;
@@ -84,28 +85,36 @@ function DashboardSidebar() {
         <nav className="flex-grow px-4 space-y-6 overflow-y-auto">
           {/* Profile / Plan Section */}
           <div className="px-3 py-4 bg-slate-50 rounded-xl mb-6 border border-slate-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
                 <User size={16} />
               </div>
-              <div className="overflow-hidden">
-                <p className="text-xs font-medium text-slate-900 truncate">{profile?.email || 'Loading...'}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                    profile?.subscription_status === 'active' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {profile?.plan_name || 'FREE'}
-                  </span>
-                  {profile?.subscription_status === 'active' && (
-                    <ShieldCheck size={12} className="text-blue-600" />
-                  )}
-                </div>
+              <div className="overflow-hidden min-h-[32px] flex flex-col justify-center">
+                {isLoading ? (
+                  <div className="flex items-center h-4">
+                    <div className="w-12 h-2 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs font-medium text-slate-900 truncate leading-none mb-1">{profile?.email}</p>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        profile?.subscription_status === 'active' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {profile?.plan_name || 'FREE'}
+                      </span>
+                      {profile?.subscription_status === 'active' && (
+                        <ShieldCheck size={12} className="text-blue-600" />
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {profile?.subscription_status !== 'active' && (
+            {!isLoading && profile?.subscription_status !== 'active' && (
               <Link 
                 href="https://infinitepush.lemonsqueezy.com/checkout/buy/20b2385a-c584-4dce-89de-3c1394887d48" 
                 target="_blank"
@@ -123,7 +132,9 @@ function DashboardSidebar() {
             </div>
             <div className="space-y-0.5">
               {isLoading ? (
-                <div className="px-3 py-2 animate-pulse bg-slate-50 rounded-lg h-9"></div>
+                <div className="px-3 py-4">
+                  <LoadingDots />
+                </div>
               ) : (
                 projects.map((p) => (
                   <Link
@@ -200,7 +211,7 @@ function DashboardSidebar() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <Suspense fallback={<div className="w-64 fixed h-full bg-white border-r border-slate-200"></div>}>
+      <Suspense fallback={<PageLoader />}>
         <DashboardSidebar />
       </Suspense>
       <main className="pl-64 min-h-screen">
