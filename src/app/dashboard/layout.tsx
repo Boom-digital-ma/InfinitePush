@@ -14,7 +14,8 @@ import {
   Box,
   ChevronRight,
   ShieldCheck,
-  User
+  User,
+  BookOpen
 } from 'lucide-react';
 import { ProjectWizard } from '@/components/dashboard/ProjectWizard';
 import { PageLoader, LoadingDots } from '@/components/ui/Loading';
@@ -187,7 +188,18 @@ function DashboardSidebar() {
           )}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="px-4 mb-4 space-y-1">
+          <Link
+            href="/dashboard/help"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+              pathname === '/dashboard/help' 
+                ? 'bg-slate-100 text-slate-900 font-semibold border border-slate-200' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <BookOpen size={16} strokeWidth={2} />
+            Help & Docs
+          </Link>
           <button 
             onClick={() => signOut()} 
             className="w-full px-3 py-2 text-slate-400 hover:text-red-600 text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-3"
