@@ -1,5 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
+import Header from '@/components/ui/Header';
+import Footer from '@/components/ui/Footer';
 
 export const metadata: Metadata = {
   title: 'InfinitePush - The Unlimited Capacitor Live Update Platform',
@@ -9,26 +11,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold font-mono text-sm">IP</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight">InfinitePush</span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-          <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
-          <a href="/login" className="hover:text-blue-600 transition-colors font-bold">Login</a>
-        </div>
-        <a 
-          href="/login"
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm"
-        >
-          Get Started
-        </a>
-      </nav>
+      <Header />
 
       {/* Hero Section */}
       <section className="px-6 py-20 md:py-32 max-w-7xl mx-auto text-center">
@@ -156,25 +139,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-12 bg-white">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 border-t border-slate-100 pt-12">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center">
-              <span className="text-white text-[10px] font-bold">IP</span>
-            </div>
-            <span className="font-bold">InfinitePush</span>
-          </div>
-          <div className="flex gap-8 text-sm text-slate-500 font-medium">
-            <a href="/privacy" className="hover:text-blue-600 transition-colors">Privacy</a>
-            <a href="/terms" className="hover:text-blue-600 transition-colors">Terms</a>
-            <a href="mailto:support@infinitepush.com" className="hover:text-blue-600 transition-colors">Support</a>
-          </div>
-          <div className="text-xs text-slate-400 font-medium">
-            © 2026 InfinitePush. Built for Capacitor developers.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
