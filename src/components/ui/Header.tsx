@@ -71,21 +71,13 @@ export default function Header() {
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </a>
           ) : (
-            <>
-              <a 
-                href="/login" 
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-              >
-                Login
-              </a>
-              <a 
-                href="/login"
-                className="group ml-2 flex items-center gap-1.5 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md active:scale-95"
-              >
-                Get Started
-                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </a>
-            </>
+            <a 
+              href="/login"
+              className="group flex items-center gap-1.5 rounded-full bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md active:scale-95"
+            >
+              Get Started
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </a>
           )}
         </nav>
 
