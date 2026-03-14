@@ -20,18 +20,21 @@ export default function TermsPage() {
           <p>InfinitePush provides a management layer for mobile application live updates. Users are responsible for their own Supabase infrastructure.</p>
         </section>
 
-        <section id="refund" className="mb-8 scroll-mt-24">
+        <section className="mb-8">
           <h2 className="text-2xl font-bold mb-4 text-slate-900">3. Subscriptions and Payments</h2>
-          <p className="mb-4">Payments are processed via Lemon Squeezy, our Merchant of Record. Subscriptions can be cancelled at any time from your billing dashboard.</p>
-          
-          <h3 className="text-xl font-semibold mb-2 text-slate-900">3.1 Refund Policy</h3>
-          <p className="mb-4">We provide a <strong>Free Tier</strong> specifically to allow users to test InfinitePush and ensure it meets their needs before committing to a paid plan. We strongly encourage all users to utilize this free version for testing.</p>
-          <p className="mb-4">For all first-time paid subscriptions, we offer a <strong>7-day refund policy</strong>. If you are not satisfied with the service within the first 7 days of your initial upgrade, you can request a full refund by contacting our support team at <strong>infinitepush.app@proton.me</strong>.</p>
-          <p>After the initial 7-day period, all payments are non-refundable. Cancellations will take effect at the end of the current billing cycle, and you will retain access to the service until that time.</p>
+          <p>Payments are processed via <strong>Lemon Squeezy</strong>, our Merchant of Record. Subscriptions can be cancelled at any time from your billing dashboard. Cancellations will take effect at the end of the current billing cycle.</p>
+        </section>
+
+        <section id="refund" className="mb-8 scroll-mt-24 p-6 bg-blue-50 rounded-2xl border border-blue-100">
+          <h2 className="text-2xl font-bold mb-4 text-slate-900 text-blue-800">4. Refund Policy</h2>
+          <p className="mb-4">We provide a <strong>Free Tier</strong> specifically to allow users to test InfinitePush and ensure it meets their needs before committing to a paid plan.</p>
+          <p className="mb-4 font-semibold text-slate-900">For all first-time paid subscriptions, we offer a 7-day "no-questions-asked" refund policy.</p>
+          <p className="mb-4">If you are not satisfied with the service within the first <strong>7 days</strong> of your initial upgrade, you can request a full refund by contacting our support team at <a href="mailto:infinitepush.app@proton.me" className="text-blue-600 underline">infinitepush.app@proton.me</a>.</p>
+          <p className="text-sm text-slate-500 italic">Note: After the initial 7-day period, all payments are non-refundable.</p>
         </section>
 
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-slate-900">4. Limitation of Liability</h2>
+          <h2 className="text-2xl font-bold mb-4 text-slate-900">5. Limitation of Liability</h2>
           <p>InfinitePush is provided "as is" without warranty of any kind. We are not liable for any damages resulting from the use of our services.</p>
         </section>
       </div>
